@@ -6,7 +6,7 @@ This is a simple command interpreter.
 
 ## Authors
 * **Peter C. Okorafor**
-* **Tomiwa N. Okafor**
+* **Kevin Onyancha**
 
 ## Files
 ### man_1_simple_shell
