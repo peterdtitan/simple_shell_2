@@ -1,0 +1,187 @@
+.\" Manpage for simple shell.
+.TH man 1 "03 November 2021" "1.0" "hsh(1) simple shell man page"
+.SH NAME
+hsh  command interpreter (simple shell)
+
+.SH SYNOPSIS
+.B hsh
+
+.SH DESCRIPTION
+hsh is a non-standard command interpreter for the system. It executes commands read from the standard input or from a file.
+It has some features which make it appear similar in some respects to the Korn shell or the Bourne shell, but it is not a clone of either one.
+This man page is not intended to be a tutorial or a complete specification of the shell.
+
+
+.B Overview
+.RS
+The shell is a command that reads lines from either a file or the terminal, interprets them, and generally executes other commands.  It is the program that is
+running when a user logs into the system (although a user can select a different shell with the chsh(1) command).  The shell implements a language that has
+flow control constructs, a macro facility that provides a variety of features in addition to data storage, along with built in history and line editing
+capabilities.  It incorporates many features to aid interactive use and has the advantage that the interpretative language is common to both interactive and non-
+interactive use (shell scripts).  That is, commands can be typed directly to the running shell or can be put into a file and the file can be executed directly
+by the shell.
+.RE
+
+.SH ARGUMENTS
+The first argument is assumed to be the name of a file containing shell commands.
+hsh reads and executes commands from this file, then exits.
+hsh's exit status is the exit status of the last command executed in the script.
+If no commands are executed, the exit status is 0. An attempt is first made to open the file in the current directory,
+and, if no file is found, then the shell searches the directories in PATH for the script.
+
+
+.SH INVOCATION
+An interactive shell is one started without non-option arguments whose standard input and error are both connected to terminals
+(as determined by by isatty(3)).
+
+
+
+.B Search and Execution
+.RS
+There are three types of commands: shell functions (not implemented), builtin commands, and normal programs -- and the command is searched for (by name) in that order.  They
+each are executed in a different way.
+When a shell function is executed, all of the shell positional parameters (except $0, which remains unchanged) are set to the arguments of the shell function.
+The variables which are explicitly placed in the environment of the command (by placing assignments to them before the function name) are made local to the
+function and are set to the values given.  Then the command given in the function definition is executed.
+Shell builtins are executed internally to the shell, without spawning a new process.
+Otherwise, if the command name doesn't match a function or builtin, the command is searched for as a normal program in the file system (as described in the
+next section).  When a normal program is executed, the shell runs the program, passing the arguments and the environment to the program.
+.RE
+
+.B Path Search
+.RS
+When locating a command, the shell first looks to see if it has a shell function by that name.  Then it looks for a builtin command by that name.  If a
+builtin command is not found, one of two things happen:
+     1.   Command names containing a slash are simply executed without performing any searches.
+     2.   The shell searches each entry in PATH in turn for the command.  The value of the PATH variable should be a series of entries separated by colons.  Each
+entry consists of a directory name.  The current directory may be indicated implicitly by an empty directory name, or explicitly by a single period.
+.RE
+
+.B Command Execution
+.RS
+After a command has been split into words, if it results in a simple command and an optional list of arguments, the following actions are taken.
+If the command name contains no slashes, the shell attempts to locate it.
+The shell searches for it in the list of shell builtins. If a match is found, that builtin is invoked.
+If the name is not a builtin, and contains no slashes, bash searches each element of the PATH for a
+directory containing an executable file by that name.
+
+   If the search is successful, or if the command name contains one or more slashes, the shell executes
+the named program in a separate execution environment.
+Argument 0 is set to the name given, and the remaining arguments to the command are set to the arguments given, if any.
+If this execution fails because the file is not in executable format, and the file is not a directory,
+it is assumed to be a shell script, a file containing shell commands. A subshell is spawned to execute it.
+.RE
+
+.B Prompting
+.RS
+When executing interactively, bash displays the primary prompt PS1 when it is ready to read a command.
+.RE
+
+
+.SH Exit Status
+Each command has an exit status that can influence the behaviour of other shell commands.  A command exits with zero for normal or success,
+and non-zero for failure, error, or a false indication.  The man page for each command should indicate the various exit codes and what they mean.
+Additionally, the builtin commands return exit codes, as does an executed shell function.
+The exit status of an executed command is the value returned by the waitpid system call or equivalent function.
+Shell builtin commands return a status of 0 (true) if successful, and non-zero (false) if an error occurs while they execute.
+Builtins return an exit status of 2 to indicate incorrect usage.
+
+
+.SH BUILTIN COMMANDS
+
+.B cd [dir]
+.RS
+Change the current directory to dir.
+The variable HOME is the default dir.
+The variable CDPATH defines the search path for the directory containing dir.
+Alternative directory names in CDPATH are separated by a colon (:).
+A null directory name in CDPATH is the same as the current directory, i.e., ''.''.
+If dir begins with a slash (/), then CDPATH is not used.
+An argument of - is equivalent to $OLDPWD. If a non-empty directory name from CDPATH is used, or if - is
+the first argument, and the directory change is successful, the absolute pathname of the new working directory
+is written to the standard output. The return value is true if the directory was successfully changed; false otherwise.
+.RE
+
+.exit
+.RS
+Cause the shell to exit with a status of n.
+If n is omitted, the exit status is that of the last command executed.
+A trap on EXIT is executed before the shell terminates.
+.RE
+
+help
+.RS
+Display helpful information about builtin commands.
+If pattern is specified, help gives detailed help on all commands matching pattern;
+otherwise help for all the builtins and shell control structures is printed.
+.RE
+
+
+.SH OPTIONS
+hsh does not take any options.
+
+.SH EXAMPLE
+
+.B Interactive mode
+.RS
+   $ ./hsh
+   #cisisfun$ /bin/ls
+   hsh main.c shell.c
+   #cisisfun$
+   #cisisfun$ exit
+   $
+.RE
+
+
+.B Non-interactive mode
+.RS
+   $ echo "/bin/ls" | ./hsh
+   hsh main.c shell.c test_ls_2
+   $
+   $ cat test_ls_2
+   /bin/ls
+   /bin/ls
+   $
+   $ cat test_ls_2 | ./hsh
+   hsh main.c shell.c test_ls_2
+   hsh main.c shell.c test_ls_2
+  $
+.RE
+
+
+.B Error
+.RS
+   $ echo "lorem_ipsum" | ./hsh
+   ./hsh: 1: lorem_ipsum: not found
+   $ echo "lorem_ipsum" | ./././hsh
+   ./././hsh: 1: lorem_ipsum: not found
+   $
+.RE
+
+.B help
+.RS
+   ./hsh
+   #cisfun$ help
+    cd
+    env
+    help
+    exit
+   #cisfun$
+.RE
+
+
+.SH SEE ALSO
+  Bash Reference Manual, Brian Fox and Chet Ramey
+  The Gnu Readline Library, Brian Fox and Chet Ramey
+  The Gnu History Library, Brian Fox and Chet Ramey
+  Portable Operating System Interface (POSIX) Part 2: Shell and Utilities, IEEE
+  sh(1), ksh(1), csh(1)
+  emacs(1), vi(1)
+  readline(3)
+
+.SH BUGS
+No known bugs.
+
+.SH AUTHOR
+Kevin Onyancha (kmutua791@gmail.com) Peter C. Okorafor (peterdtitan@gmail.com)
+
